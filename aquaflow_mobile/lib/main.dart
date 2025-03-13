@@ -17,7 +17,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      showSemanticsDebugger: false,
+      debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         primaryColor: const Color(0xFF5BE7C4),
         scaffoldBackgroundColor: const Color(0xFF1E1E1E),
@@ -29,6 +29,7 @@ class MainApp extends StatelessWidget {
           onSecondary: const Color(0xFFF6F7FB),
           onSurface: const Color(0xFFF6F7FB),
           onError: const Color(0xFFD32F2F),
+          error: const Color.fromARGB(255, 235, 8, 83),
         ),
         textTheme: const TextTheme(
         ),

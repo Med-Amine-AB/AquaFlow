@@ -14,6 +14,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance; // Initialize Firebase Auth
 
+  bool isLeakDetected = false;
+  bool isWaterStopped = false;
+
   // Get the current user's ID (or handle null if not logged in)
   String? _getCurrentUserId() {
     final User? user = _auth.currentUser;
@@ -31,9 +34,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     print('Fetching data for user: $userId'); //for Debug
     return _firestore
+        .collection('users')
+        .doc(userId)
         .collection('water_usage')
-        .doc(userId) // Specify the user's document ID
-        .collection('usage_data') // Add a subcollection for the user data
+        .orderBy('timestamp', descending: true) // Ensure the latest document is fetched first
         .snapshots();
   }
 
@@ -49,6 +53,26 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
     return totalUsage;
+  }
+
+  Future<void> _updateAction(String action, bool active) async {
+    String? userId = _getCurrentUserId();
+    if (userId == null) {
+      print('User is not logged in.');
+      return;
+    }
+
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('actions')
+          .doc(action)
+          .set({'active': active});
+      print('Action $action updated to $active');
+    } catch (e) {
+      print('Error updating action $action: $e');
+    }
   }
 
   @override
@@ -69,33 +93,42 @@ class _HomeScreenState extends State<HomeScreen> {
             } 
 
             if (snapshot.hasError) {
+              print('Error: ${snapshot.error}');
               return Center(child: Text('Error: ${snapshot.error}'));
             }
 
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              print('No data available.');
               return const Center(child: Text('No data available.'));
             }
 
             var docs = snapshot.data!.docs;
+            print('Fetched ${docs.length} documents.');
             double dailyUsage = _calculateDailyUsage(docs);
-            var latestDoc = docs.isNotEmpty ? docs.last : null;
+            var latestDoc = docs.isNotEmpty ? docs.first : null; // Fetch the latest document
             String status = latestDoc != null ? latestDoc['status'] : 'normal';
             double usageLiters = latestDoc != null ? latestDoc['usage_liters'] : 0.0;
-            bool isLeakDetected = status == 'leak_detected';
+            isLeakDetected = status == 'leak_detected';
+            isWaterStopped = latestDoc != null ? latestDoc['auto_block'] : false;
+
+            print('Daily Usage: $dailyUsage');
+            print('Current Usage: $usageLiters');
+            print('Status: $status');
 
             return Column(
               children: [
                 Card(
-                  color: colorScheme.surface,
+                  color: colorScheme.secondary,
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Today\'s Usage',
                           style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
                             color: colorScheme.onSurface,
                           ),
                         ),
@@ -103,27 +136,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           '${dailyUsage.toStringAsFixed(2)} Liters',
                           style: TextStyle(
-                            fontSize: 32,
+                            fontSize: 28,
                             fontWeight: FontWeight.bold,
                             color: colorScheme.primary,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Card(
-                  color: isLeakDetected ? colorScheme.error : colorScheme.surface,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
+                        const Divider(height: 30, thickness: 1),
                         Text(
                           'Current Usage',
                           style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                             color: colorScheme.onSurface,
                           ),
                         ),
@@ -131,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           '${usageLiters.toStringAsFixed(2)} Liters',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: isLeakDetected ? colorScheme.onError : colorScheme.primary,
                           ),
@@ -141,34 +164,154 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: isLeakDetected ? () {
-                    // Stop leaking logic
-                  } : null,
-                  child: const Text('Stop Leaking'),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: isLeakDetected && usageLiters > 0 ? () {
+                      
+                    } : null,
+                    child: Text(
+                      'Warning! There is a Leak!',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: isLeakDetected && usageLiters > 0 ? colorScheme.error : colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    // Stop water logic
-                  },
-                  child: const Text('Stop Water'),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: !isWaterStopped ? () {
+                      _updateAction('stop_water', true);
+                    } : null,
+                    child: Text(
+                      'Stop Water',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: !isWaterStopped ? Theme.of(context).scaffoldBackgroundColor : colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: isWaterStopped ? () {
+                      _updateAction('stop_water', false);
+                    } : null,
+                    child: Text(
+                      'Start Water',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: isWaterStopped ? Theme.of(context).scaffoldBackgroundColor : colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: isLeakDetected ? () {
+                      _updateAction('stop_leak', false);
+                    } : null,
+                    child: Text(
+                      'Leak Resolved',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: isLeakDetected ? colorScheme.secondary : colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
                 ),
                 const Spacer(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    TextButton(
-                      onPressed: () {
-                        // Navigate to Settings screen
-                      },
-                      child: const Text('Settings'),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: () {
+                              // Navigate to Settings screen
+                            },
+                            child: Text(
+                              'Settings',
+                              style: TextStyle(
+                                color: Theme.of(context).scaffoldBackgroundColor,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        // Navigate to Analyze Dashboard screen
-                      },
-                      child: const Text('Analyze Dashboard'),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: () {
+                              // Navigate to Analyze Dashboard screen
+                            },
+                            child: Text(
+                              'Analyze Dashboard',
+                              style: TextStyle(
+                                color: Theme.of(context).scaffoldBackgroundColor,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),

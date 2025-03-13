@@ -47,6 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _obscureText = true;
+  bool _isLeaking = false;
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
@@ -178,22 +179,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        // Navigate to the Register screen
-                      },
-                      child: const Text('Register'),
+                Container(
+                  width: double.infinity,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: _isLeaking ? Colors.red : Colors.green,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Text(
+                      _isLeaking ? 'Water is leaking!' : 'No water leak detected',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        // Navigate to the Forgot Password screen
-                      },
-                      child: const Text('Forgot Password?'),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
