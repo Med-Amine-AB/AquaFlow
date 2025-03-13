@@ -1,74 +1,38 @@
-// ignore_for_file: avoid_print
-
-import 'dart:convert';
-import 'package:aquaflow_mobile/singup.dart';
-import 'package:http/http.dart' as http;
-
-import 'package:aquaflow_mobile/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:aquaflow_mobile/login_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class Signup extends StatefulWidget {
+  const Signup({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<Signup> createState() => _SignupState();
 }
 
-void sendUserIdToPython() async {
-  String? userId = FirebaseAuth.instance.currentUser?.uid;
-  if (userId == null) {
-    print("❌ User not logged in!");
-    return;
-  }
-
-  print("Sending user ID: $userId"); // Debugging
-
-  final response = await http.post(
-    Uri.parse(
-      "http://192.168.144.151:5000/set_user",
-    ), // Use the actual IP address of your machine
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode({"user_id": userId}),
-  );
-
-  print("Response status: ${response.statusCode}"); // Debugging
-  print("Response body: ${response.body}"); // Debugging
-
-  if (response.statusCode == 200) {
-    print("✅ User ID sent successfully to Python!");
-  } else {
-    print("❌ Failed to send User ID: ${response.body}");
-  }
-}
-
-class _LoginScreenState extends State<LoginScreen> {
+class _SignupState extends State<Signup> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _obscureText = true;
 
-  Future<void> _login() async {
+  Future<void> _signup() async {
     if (_formKey.currentState!.validate()) {
       try {
-        await _auth.signInWithEmailAndPassword(
+        await _auth.createUserWithEmailAndPassword(
           email: _emailController.text,
           password: _passwordController.text,
         );
-        sendUserIdToPython();
-        // Navigate to the next screen after successful login
+        // Navigate to the login screen after successful sign-up
         Navigator.pushReplacement(
-          // ignore: use_build_context_synchronously
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
         );
       } catch (e) {
-        // Handle login error
-        // ignore: use_build_context_synchronously
+        // Handle sign-up error
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Login failed: $e')));
+        ).showSnackBar(SnackBar(content: Text('Sign-up failed: $e')));
       }
     }
   }
@@ -91,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(
         title: Center(
           child: Text(
-            'Login',
+            'Sign Up',
             style: TextStyle(
               color: colorScheme.onSecondary,
               fontSize: 26,
@@ -167,9 +131,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    onPressed: _login,
+                    onPressed: _signup,
                     child: Text(
-                      'Login',
+                      'Sign Up',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
@@ -184,17 +148,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     TextButton(
                       onPressed: () {
-                        // Navigate to the Register screen
+                        // Navigate to the Login screen
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => const Signup()),
+                          MaterialPageRoute(builder: (context) => const LoginScreen()),
                         );
                       },
-                      child: const Text('Register'),
+                      child: const Text('Login'),
                     ),
                     TextButton(
                       onPressed: () {
-                        
+                        // Navigate to the Forgot Password screen
                       },
                       child: const Text('Forgot Password?'),
                     ),

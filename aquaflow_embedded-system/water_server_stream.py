@@ -31,7 +31,7 @@ leak_mode = False
 water_shutoff = False
 high_usage_counter = 0
 threshold = 1.5
-minute_duration = 10  # Simulated minutes (5 sec per real minute)
+minute_duration = 4  # Simulated minutes (5 sec per real minute)
 state_lock = threading.Lock()
 
 # 🔌 Socket setup for commands
