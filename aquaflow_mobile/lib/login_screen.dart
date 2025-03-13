@@ -21,16 +21,18 @@ void sendUserIdToPython() async {
     return;
   }
 
-  print("Sending user ID: $userId");  // Debugging
+  print("Sending user ID: $userId"); // Debugging
 
   final response = await http.post(
-    Uri.parse("http://192.168.144.151:5000/set_user"), // Use the actual IP address of your machine
+    Uri.parse(
+      "http://192.168.144.151:5000/set_user",
+    ), // Use the actual IP address of your machine
     headers: {"Content-Type": "application/json"},
     body: jsonEncode({"user_id": userId}),
   );
 
-  print("Response status: ${response.statusCode}");  // Debugging
-  print("Response body: ${response.body}");  // Debugging
+  print("Response status: ${response.statusCode}"); // Debugging
+  print("Response body: ${response.body}"); // Debugging
 
   if (response.statusCode == 200) {
     print("✅ User ID sent successfully to Python!");
@@ -44,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _obscureText = true;
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
@@ -62,9 +65,9 @@ class _LoginScreenState extends State<LoginScreen> {
       } catch (e) {
         // Handle login error
         // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Login failed: $e')));
       }
     }
   }
@@ -82,38 +85,118 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ColorScheme colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Login'),
+        title: Center(
+          child: Text(
+            'Login',
+            style: TextStyle(
+              color: colorScheme.onSecondary,
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: _validateEmail,
-              ),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your password';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _login,
-                child: const Text('Login'),
-              ),
-            ],
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Container(
+                  height: 300,
+                  width: 300,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    image: const DecorationImage(
+                      image: AssetImage('assets/logo.png'),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  validator: _validateEmail,
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureText ? Icons.visibility : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureText = !_obscureText;
+                        });
+                      },
+                    ),
+                  ),
+                  obscureText: _obscureText,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your password';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: _login,
+                    child: Text(
+                      'Login',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        // Navigate to the Register screen
+                      },
+                      child: const Text('Register'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        // Navigate to the Forgot Password screen
+                      },
+                      child: const Text('Forgot Password?'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
