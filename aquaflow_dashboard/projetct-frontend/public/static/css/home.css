@@ -1,0 +1,83 @@
+.grid-container {
+  --grid: 10rem;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 100vh;
+  left: 0;
+  transform-style: preserve-3d;
+  perspective: 100rem;
+  animation: rotate 100s linear infinite forwards;
+}
+.grid-container .plane {
+  --dir: 1;
+  width: 300%;
+  height: 150%;
+  min-height: 70rem;
+  position: absolute;
+  bottom: 0;
+  transform-style: preserve-3d;
+  transform-origin: bottom center;
+  transform: translateX(-50%) rotateX(85deg);
+}
+.grid-container .plane:last-child {
+  --dir: -1;
+  top: 100vh;
+  transform-origin: top center;
+  transform: translateX(-50%) rotateX(-85deg);
+}
+.grid-container .plane:last-child > *::after {
+  background-image: linear-gradient(to top, rgb(0, 0, 0) var(--grid), rgba(0, 0, 0, 0));
+}
+.grid-container .plane > * {
+  transform-style: preserve-3d;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+}
+.grid-container .plane > *::before, .grid-container .plane > *::after {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 100vh;
+  left: 0;
+}
+.grid-container .plane > *::before {
+  background-image: repeating-linear-gradient(to left, green, green 4px, transparent 4px, transparent var(--grid)), repeating-linear-gradient(to bottom, green, green 4px, transparent 4px, transparent var(--grid));
+  animation: move 1s linear infinite forwards;
+}
+.grid-container .plane > *::after {
+  background-image: linear-gradient(to bottom, rgb(0, 0, 0) var(--grid), rgba(0, 0, 0, 0));
+  z-index: 1;
+  transform: translateZ(1px);
+}
+.grid-container .plane .glow {
+  filter: blur(1rem);
+  z-index: 1;
+  mix-blend-mode: plus-lighter;
+}
+
+@keyframes move {
+  from {
+    transform: translateY(0px);
+  }
+  to {
+    transform: translateY(calc(var(--grid) * var(--dir)));
+  }
+}
+@keyframes blink {
+  0% {
+    visibility: visible;
+  }
+  50% {
+    visibility: visible;
+  }
+  51% {
+    visibility: hidden;
+  }
+  100% {
+    visibility: hidden;
+  }
+}/*# sourceMappingURL=home.css.map */
