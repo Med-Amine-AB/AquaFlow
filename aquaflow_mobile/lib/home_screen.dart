@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Import for user authentication
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // Import for local notifications
+import 'package:audioplayers/audioplayers.dart'; // Import for audio player
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,9 +15,39 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance; // Initialize Firebase Auth
+  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin(); // Initialize local notifications
+  final AudioPlayer _audioPlayer = AudioPlayer(); // Initialize audio player
 
   bool isLeakDetected = false;
   bool isWaterStopped = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeNotifications();
+  }
+
+  void _initializeNotifications() {
+    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+    _flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
+
+  Future<void> _showNotification(String title, String body) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'your_channel_id',
+      'your_channel_name',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: false,
+    );
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
+    await _flutterLocalNotificationsPlugin.show(0, title, body, platformChannelSpecifics);
+  }
+
+  Future<void> _playLeakDetectedSound() async {
+    await _audioPlayer.play(AssetSource('assets/leak_detected.mp3')); // Update with the actual path to your audio file
+  }
 
   // Get the current user's ID (or handle null if not logged in)
   String? _getCurrentUserId() {
@@ -111,6 +143,11 @@ class _HomeScreenState extends State<HomeScreen> {
             isLeakDetected = status == 'leak_detected';
             isWaterStopped = latestDoc != null ? latestDoc['auto_block'] : false;
 
+            if (isLeakDetected) {
+              _showNotification('Leak Detected', 'A water leak has been detected. Please take action.');
+              _playLeakDetectedSound();
+            }
+
             print('Daily Usage: $dailyUsage');
             print('Current Usage: $usageLiters');
             print('Status: $status');
@@ -174,14 +211,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     onPressed: isLeakDetected && usageLiters > 0 ? () {
-                      
+                      _updateAction('stop_leak', true);
                     } : null,
                     child: Text(
-                      'Warning! There is a Leak!',
+                      'Warning: Leak Detected',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
-                        color: isLeakDetected && usageLiters > 0 ? colorScheme.error : colorScheme.onSurface,
+                        color: isLeakDetected && usageLiters > 0 ? Theme.of(context).scaffoldBackgroundColor : colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -250,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
-                        color: isLeakDetected ? colorScheme.secondary : colorScheme.onSurface,
+                        color: isLeakDetected ? Theme.of(context).scaffoldBackgroundColor : colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -277,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Text(
                               'Settings',
                               style: TextStyle(
-                                color: Theme.of(context).scaffoldBackgroundColor,
+                                color: Theme.of(context).scaffoldBackgroundColor ,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -304,7 +341,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Text(
                               'Analyze Dashboard',
                               style: TextStyle(
-                                color: Theme.of(context).scaffoldBackgroundColor,
+                                color: Theme.of(context).scaffoldBackgroundColor ,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w500,
                               ),
